@@ -22,7 +22,7 @@ This script automates the installation of AWX (Ansible Web UI) on a K3s Kubernet
 
 ## Prerequisites
 
-- Ubuntu/Debian-based Linux system (or compatible)
+- Fedora Server (or RHEL-based)
 - Root/sudo access
 - Internet connection
 - Git installed
