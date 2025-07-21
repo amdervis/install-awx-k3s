@@ -80,6 +80,7 @@ EOF
   kubectl apply -k .
 
   # Set the current namespace for kubectl so you don't have to keep repeating `-n awx`
+  kubectl config set-context --current --namespace=awx
 }
 
 install_k3s
