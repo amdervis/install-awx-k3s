@@ -2,7 +2,7 @@
 
 This script automates the installation of AWX (Ansible Web UI) on a K3s Kubernetes cluster. It handles the complete setup process from installing K3s to deploying AWX with proper networking configuration.
 
-## Intro
+## What This Script Does
 
 ### K3s Installation (`install_k3s`)
 - Installs K3s lightweight Kubernetes distribution
@@ -22,11 +22,54 @@ This script automates the installation of AWX (Ansible Web UI) on a K3s Kubernet
 
 ## Prerequisites
 
-- Fedora Server (or RHEL compatible)
+- Ubuntu/Debian-based Linux system (or compatible)
 - Root/sudo access
 - Internet connection
 - Git installed
 - Curl installed
+
+### ⚠️ Important Security Note (TODO)
+
+**For the current version of this script to work properly, you may need to:**
+
+1. **Disable firewalld** (if running on RHEL/CentOS/Fedora):
+   ```bash
+   sudo systemctl stop firewalld
+   sudo systemctl disable firewalld
+   ```
+
+2. **Disable SELinux** (if running on RHEL/CentOS/Fedora):
+   ```bash
+   sudo setenforce 0
+   sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+   ```
+
+> **⚠️ WARNING**: Disabling firewalld and SELinux reduces system security. This is a temporary workaround while proper firewall rules and SELinux policies are being developed.
+>
+> **TODO**: Future versions of this script will include:
+> - Proper firewall configuration for K3s and AWX ports
+> - SELinux policy configuration for container operations
+> - Network security best practices
+
+### Alternative: Manual Firewall Configuration
+
+If you prefer to keep firewalld enabled, you can manually open the required ports:
+
+```bash
+# K3s required ports
+sudo firewall-cmd --permanent --add-port=6443/tcp  # Kubernetes API server
+sudo firewall-cmd --permanent --add-port=10250/tcp # Kubelet API
+sudo firewall-cmd --permanent --add-port=8472/udp  # Flannel VXLAN
+sudo firewall-cmd --permanent --add-port=51820/udp # Flannel Wireguard IPv4
+sudo firewall-cmd --permanent --add-port=51821/udp # Flannel Wireguard IPv6
+
+# HTTP/HTTPS for AWX access
+sudo firewall-cmd --permanent --add-port=80/tcp
+sudo firewall-cmd --permanent --add-port=443/tcp
+
+# Reload firewall rules
+sudo firewall-cmd --reload
+```
 
 ## Usage
 
