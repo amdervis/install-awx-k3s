@@ -30,17 +30,32 @@ install_k3s() {
 
   echo "🔧 Adding KUBECONFIG to ~/.bashrc for future sessions..."
   # Add to your ~/.bashrc for future shell sessions
-  if ! grep -q "export KUBECONFIG=~/.kube/config" ~/.bashrc; then
-    echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+  KUBECONFIG_LINE='export KUBECONFIG=~/.kube/config'
+  if ! grep -Fq "$KUBECONFIG_LINE" ~/.bashrc; then
+    echo "$KUBECONFIG_LINE" >> ~/.bashrc
     echo "✅ KUBECONFIG added to ~/.bashrc"
   else
     echo "✅ KUBECONFIG already exists in ~/.bashrc"
   fi
 
   echo "🔧 Setting KUBECONFIG for current script session..."
-  # Export KUBECONFIG for the current script and any subprocesses
-  export KUBECONFIG=~/.kube/config
+  # Use absolute path to avoid tilde expansion issues
+  KUBECONFIG_PATH="/home/$(whoami)/.kube/config"
+  export KUBECONFIG="$KUBECONFIG_PATH"
   echo "✅ KUBECONFIG set to: $KUBECONFIG"
+  
+  # Verify kubectl can connect
+  echo "🔍 Testing kubectl connectivity..."
+  if kubectl cluster-info &> /dev/null; then
+    echo "✅ kubectl is working correctly"
+  else
+    echo "❌ kubectl cannot connect to cluster"
+    echo "📋 Debugging info:"
+    echo "   KUBECONFIG: $KUBECONFIG"
+    echo "   Config file exists: $([ -f "$KUBECONFIG" ] && echo "Yes" || echo "No")"
+    echo "   Config file readable: $([ -r "$KUBECONFIG" ] && echo "Yes" || echo "No")"
+    exit 1
+  fi
   
   echo "✅ K3s setup completed!"
   echo ""
@@ -98,15 +113,22 @@ install_awx-operator() {
   
   echo "📌 Latest AWX Operator version: $latest_awx_version"
 
-  echo "📥 Cloning AWX Operator repository..."
-  # Clone the AWX Operator repository
-  git clone https://github.com/ansible/awx-operator.git ~/awx-operator
-  
-  if [ $? -eq 0 ]; then
-    echo "✅ Repository cloned successfully"
+  echo "📥 Checking if AWX Operator repository exists..."
+  # Check if the awx-operator directory already exists
+  if [ -d "~/awx-operator" ]; then
+    echo "✅ AWX Operator repository already exists, skipping clone"
+    echo "📂 Using existing directory: ~/awx-operator"
   else
-    echo "❌ Failed to clone repository"
-    exit 1
+    echo "📥 Cloning AWX Operator repository..."
+    # Clone the AWX Operator repository
+    git clone https://github.com/ansible/awx-operator.git
+    
+    if [ $? -eq 0 ]; then
+      echo "✅ Repository cloned successfully"
+    else
+      echo "❌ Failed to clone repository"
+      exit 1
+    fi
   fi
 
   echo "📂 Changing to AWX Operator directory and checking out version $latest_awx_version..."
@@ -174,13 +196,18 @@ EOF
   echo "✅ awx-ingress.yaml created successfully"
 
   echo "🚀 Applying AWX configuration to Kubernetes cluster..."
-  # Finally, apply the changes to create the AWX instance in your cluster
+  # Apply the kustomization which includes both operator and AWX instance
   kubectl apply -k .
   
   if [ $? -eq 0 ]; then
     echo "✅ AWX configuration applied successfully"
   else
     echo "❌ Failed to apply AWX configuration"
+    echo "📋 Current directory contents:"
+    ls -la
+    echo "📋 Checking if files exist:"
+    [ -f "kustomization.yaml" ] && echo "✅ kustomization.yaml exists" || echo "❌ kustomization.yaml missing"
+    [ -f "awx-demo.yml" ] && echo "✅ awx-demo.yml exists" || echo "❌ awx-demo.yml missing"
     exit 1
   fi
 
