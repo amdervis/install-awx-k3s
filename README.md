@@ -120,7 +120,7 @@ Then access AWX at: `http://localhost:8080`
 
 ### 4. Get AWX Admin Password
 ```bash
-kubectl get secret awx-demo-admin-password -o jsonpath="{.data.password}" -n awx | base64 --decode
+kubectl get secret awx-demo-admin-password -o jsonpath="{.data.password}" | base64 --decode ; echo
 ```
 
 Default username: `admin`
